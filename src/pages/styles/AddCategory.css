@@ -1,0 +1,246 @@
+/* =========================================
+   ADD CATEGORY PAGE MAIN CONTAINER
+========================================= */
+.add-category-container {
+  padding: 2.5rem 1.5rem;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* =========================================
+   HEADER
+========================================= */
+.add-category-header {
+  text-align: center;
+}
+
+.add-category-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  color: #667eea;
+}
+
+.add-category-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+.add-category-subtitle {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+/* =========================================
+   FORM CARD
+========================================= */
+.add-category-form-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  padding: 2.5rem;
+  border: 1px solid #f1f3f5;
+  transition: 0.3s ease;
+}
+
+.add-category-form-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+}
+
+.add-category-form-group {
+  margin-bottom: 1.5rem;
+}
+
+.add-category-form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.add-category-form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #f8f9fa;
+  transition: 0.3s ease;
+}
+
+.add-category-form-input:focus {
+  outline: none;
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+.add-category-form-input::placeholder {
+  color: #adb5bd;
+}
+
+/* SUBMIT BUTTON */
+.add-category-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s ease;
+}
+
+.add-category-btn:hover {
+  background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   ADDED CATEGORY LIST (SCROLLABLE)
+========================================= */
+.added-category-list {
+  margin-top: 1rem;
+  background: white;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f1f3f5;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.added-category-items {
+  max-height: 200px; /* Only 3 rows visible */
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Scrollbar */
+.added-category-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.added-category-items::-webkit-scrollbar-track {
+  background: #f1f3f5;
+  border-radius: 10px;
+}
+
+.added-category-items::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 10px;
+}
+
+.added-category-items::-webkit-scrollbar-thumb:hover {
+  background: #5a67d8;
+}
+
+.added-category-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f8f9fa;
+  padding: 0.4rem;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  transition: 0.25s ease;
+}
+
+.added-category-card:hover {
+  background: #eef1ff;
+  transform: translateX(4px);
+}
+
+.added-category-dot {
+  width: 10px;
+  height: 10px;
+  background: #667eea;
+  border-radius: 50%;
+}
+
+.added-category-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+
+.add-category-loading {
+  text-align: center;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* =========================================
+   RESPONSIVENESS
+========================================= */
+@media (max-width: 768px) {
+  .add-category-container {
+    padding: 1.5rem 1rem;
+  }
+  .add-category-title {
+    font-size: 1.75rem;
+  }
+  .add-category-form-card {
+    padding: 1.5rem;
+  }
+}
+
+/* Fade Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ACTION BUTTONS */
+.action-buttons {
+  margin-left: auto;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.edit-btn,
+.delete-btn {
+  border: none;
+  background: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.25s;
+  border: 1px solid #e2e6ea;
+}
+
+/* EDIT BUTTON */
+.edit-btn:hover {
+  background: #e0e7ff;
+  border-color: #667eea;
+}
+
+/* DELETE BUTTON */
+.delete-btn:hover {
+  background: #ffe5e5;
+  border-color: #ff6b6b;
+}

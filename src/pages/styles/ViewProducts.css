@@ -1,0 +1,266 @@
+/* CONTAINER */
+.vp-container {
+  padding: 2rem 1.5rem;
+  max-width: 1300px;
+  margin: auto;
+}
+
+/* HEADER */
+.vp-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.vp-icon {
+  width: 70px;
+  height: 70px;
+  background: #eef2ff;
+  color: #667eea;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vp-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+
+.vp-subtitle {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* LANDSCAPE CARD LIST */
+.vp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+/* CARD LANDSCAPE */
+.vp-card-land {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  padding: 1rem;
+  display: flex;
+  gap: 1.2rem;
+  transition: 0.3s ease;
+}
+
+.vp-card-land:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+/* LEFT MAIN IMAGE */
+.vp-left-img {
+  width: 250px;
+  height: 250px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vp-left-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* RIGHT SIDE (DETAILS) */
+.vp-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* NAME + SKU */
+.vp-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vp-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.vp-sku {
+  background: #ececec;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+/* PRICES */
+.vp-price-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.vp-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.vp-mrp {
+  text-decoration: line-through;
+  color: #888;
+}
+
+/* TAGS */
+.vp-tags {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.vp-tag {
+  background: #eef2ff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* EXTRA IMAGES */
+.vp-extras-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vp-extra-img {
+  width: 65px;
+  height: 65px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid #667eea;
+  transition: 0.2s;
+}
+
+.vp-extra-img:hover {
+  transform: scale(1.1);
+}
+
+/* RATINGS LANDSCAPE STYLE */
+.vp-rating-row {
+  display: flex;
+  gap: 1rem;
+  margin-top: 6px;
+}
+
+.vp-rating-box-land {
+  background: #e4dede;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  box-shadow: rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.vp-rating-img-land img,
+.vp-rating-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vp-stars {
+  color: #fbc531;
+  font-size: 1rem;
+}
+
+/* ACTION BUTTONS */
+.vp-action-row-land {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.vp-edit,
+.vp-delete {
+  padding: 0.45rem 2rem !important;
+  border: none !important;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px;
+  justify-content: center;
+}
+
+.vp-edit {
+  background: #0091ff;
+  color: white;
+}
+
+.vp-edit:hover {
+  background: #0077cc;
+}
+
+.vp-delete {
+  background: #e63946;
+  color: white;
+}
+
+.vp-delete:hover {
+  background: #c71c2b;
+}
+
+/* EMPTY STATE */
+.vp-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+}
+
+.vp-empty-main {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.vp-empty-sub {
+  font-size: 0.9rem;
+}
+
+
+.vp-user{
+  margin: 0px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #667eea;
+}
+
+.vp-star {
+  font-size: 1rem;
+}
+
+.vp-star.filled {
+  color: #667eea; /* golden */
+}
+
+.vp-star.empty {
+  color: #667eea; /* gray */
+}

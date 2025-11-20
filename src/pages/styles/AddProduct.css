@@ -1,0 +1,271 @@
+/* ----------------------------------
+   PAGE LAYOUT
+---------------------------------- */
+
+.add-product-container {
+  padding: 2.5rem 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.add-product-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.add-product-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  margin-bottom: 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+  color: #667eea;
+}
+
+.add-product-title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.add-product-subtitle {
+  font-size: 1rem;
+  color: #6c757d;
+}
+
+.add-product-form-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+  padding: 2.5rem;
+  border: 1px solid #f1f3f5;
+  transition: all 0.3s ease;
+}
+
+.add-product-form-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+}
+
+.add-product-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .add-product-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----------------------------------
+   FORM INPUTS
+---------------------------------- */
+
+.add-product-form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.add-product-form-input,
+.add-product-form-textarea,
+.add-product-form-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  font-size: 1rem;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.add-product-form-input:focus,
+.add-product-form-textarea:focus,
+.add-product-form-select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* ----------------------------------
+   GALLERY SECTION (LATEST VERSION)
+---------------------------------- */
+
+.add-product-form-group {
+  margin-bottom: 1.2rem;
+}
+
+/* Existing & New Gallery Grid */
+.existing-gallery-grid,
+.add-product-images-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+/* Image Card */
+.image-preview {
+  position: relative;
+  padding: 1rem;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+  transition: 0.25s ease;
+}
+
+.image-preview:hover {
+  transform: translateY(-2px);
+}
+
+.image-preview img {
+  width: 150px;
+  height: 150px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+/* Delete Button */
+
+
+.image-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  background: rgba(232, 65, 24, 0.92);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.image-delete-btn:hover {
+  background: rgba(200, 40, 20, 0.95);
+}
+
+/* ----------------------------------
+   RATINGS SECTION
+---------------------------------- */
+
+.add-product-rating-section {
+  background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin: 2rem 0;
+  border-left: 4px solid #667eea;
+}
+
+.add-product-rating-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+/* Review Card */
+.review-card {
+  background: #f8f9fa;
+  padding: 1.2rem;
+  border-radius: 14px;
+  border-left: 4px solid #667eea;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* Buttons */
+
+.add-review-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  margin-bottom: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: 0.2s ease;
+}
+
+.add-review-btn:hover {
+  background: #5a67d8;
+}
+
+.delete-review-btn {
+  background: #e84118;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-review-btn:hover {
+  background: #c23616;
+}
+
+.no-review-text {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* ----------------------------------
+   SUBMIT BUTTON
+---------------------------------- */
+
+.add-product-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #ffffff;
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  transition: 0.3s ease;
+}
+
+.add-product-btn:hover {
+  background: linear-gradient(135deg, #5a67d8, #6b46c1);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+.file-input {
+  display: none; /* Hides the original choose file button */
+}
+
+.custom-upload-btn {
+  padding: 10px 18px;
+  background-color: #667eea;
+  color: white;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  border: none;
+  display: inline-block;
+}

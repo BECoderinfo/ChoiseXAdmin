@@ -1,0 +1,592 @@
+.payment-history-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease-in-out;
+  }
+  
+  .payment-history-header {
+    margin-bottom: 2rem;
+  }
+  
+ 
+  
+  .payment-history-subtitle {
+    font-size: 1.1rem;
+    color: #6c757d;
+    margin-bottom: 0;
+  }
+  
+  .payment-history-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .payment-history-stat-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .payment-history-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .payment-history-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
+  
+  .payment-history-stat-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .payment-history-stat-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  
+  .payment-history-stat-info h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #2c3e50;
+  }
+  
+  .payment-history-stat-info p {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0;
+  }
+  
+  .payment-history-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .payment-history-summary-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    border-left: 4px solid #667eea;
+  }
+  
+  .payment-history-summary-card h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+  }
+  
+  .payment-history-method-stats {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .payment-history-method-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .payment-history-method-stat:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+  }
+  
+  .payment-history-method-icon {
+    font-size: 1.25rem;
+    width: 30px;
+    text-align: center;
+  }
+  
+  .payment-history-table-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-top: 2rem;
+  }
+  
+  .payment-history-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+  }
+  
+  .payment-history-table-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0;
+    color: #2c3e50;
+  }
+  
+  .payment-history-table-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  
+  .payment-history-secondary-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .payment-history-secondary-btn:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+  }
+  
+  .payment-history-table-responsive {
+    overflow-x: auto;
+  }
+  
+  .payment-history-data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .payment-history-data-table th {
+    background: #f8f9fa;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: #2c3e50;
+    border-bottom: 2px solid #e9ecef;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .payment-history-data-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+  }
+  
+  .payment-history-data-table tr:hover {
+    background: #f8f9fa;
+  }
+  
+  .payment-history-transaction-id {
+    background: #f8f9fa;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #2c3e50;
+  }
+  
+  .payment-history-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .payment-history-user-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  
+  .payment-history-user-name {
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  
+  .payment-history-order-id {
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  
+  .payment-history-amount-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .payment-history-amount {
+    font-weight: 700;
+    color: #4cd137;
+    font-size: 1.1rem;
+  }
+  
+  .payment-history-refund-badge {
+    background: #fbc531;
+    color: #2c3e50;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  
+  .payment-history-payment-method {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .payment-history-method-icon {
+    font-size: 1.1rem;
+  }
+  
+  .payment-history-datetime-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .payment-history-date {
+    font-weight: 500;
+    color: #2c3e50;
+  }
+  
+  .payment-history-time {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+  
+  .payment-history-status-badge {
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+  
+  .payment-history-status-completed {
+    background: rgba(76, 209, 55, 0.1);
+    color: #4cd137;
+    border: 1px solid rgba(76, 209, 55, 0.2);
+  }
+  
+  .payment-history-status-failed {
+    background: rgba(232, 65, 24, 0.1);
+    color: #e84118;
+    border: 1px solid rgba(232, 65, 24, 0.2);
+  }
+  
+  .payment-history-status-refunded {
+    background: rgba(251, 197, 49, 0.1);
+    color: #fbc531;
+    border: 1px solid rgba(251, 197, 49, 0.2);
+  }
+  
+  .payment-history-status-pending {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    border: 1px solid rgba(108, 117, 125, 0.2);
+  }
+  
+  .payment-history-action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  
+  .payment-history-btn-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+  }
+  
+  .payment-history-btn-action:hover {
+    background: #e9ecef;
+    transform: scale(1.1);
+  }
+  
+  .payment-history-empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #6c757d;
+    grid-column: 1 / -1;
+  }
+  
+  .payment-history-empty-text {
+    font-size: 1.1rem;
+    margin-bottom: 0;
+  }
+  
+  @media (max-width: 768px) {
+    .payment-history-container {
+      padding: 1rem;
+    }
+    
+    .payment-history-stats-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .payment-history-summary-cards {
+      grid-template-columns: 1fr;
+    }
+    
+    .payment-history-table-header {
+      flex-direction: column;
+      gap: 1rem;
+      align-items: stretch;
+    }
+    
+    .payment-history-table-actions {
+      justify-content: center;
+    }
+    
+    .payment-history-title {
+      font-size: 2rem;
+    }
+  }
+
+  /* ------------ PAYMENT HISTORY TABLE (UPDATED & PREMIUM UI) ------------ */
+
+.payment-history-table-container {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+  margin-top: 2rem;
+  border: 1px solid #f1f1f1;
+}
+
+.payment-history-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.4rem 1.8rem;
+  background: #fafafa;
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.payment-history-table-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2d3436;
+  margin: 0;
+}
+
+.payment-history-table-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.payment-history-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* TABLE UI */
+.payment-history-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  min-width: 1000px;
+}
+
+.payment-history-data-table th {
+  background: #f4f6f8;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #2d3436;
+  border-bottom: 2px solid #e0e0e0;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ROWS */
+.payment-history-data-table td {
+  padding: 0.5rem;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid #ececec;
+  font-size: 0.92rem;
+  color: #2f3640;
+}
+
+/* Row Hover */
+.payment-history-data-table tr:hover {
+  background: #fafafa;
+  transition: 0.2s ease;
+}
+
+/* Transaction ID */
+.payment-history-transaction-id {
+  background: #f2f3f5;
+  padding: 0.45rem 0.8rem;
+  border-radius: 6px;
+  font-family: "Courier New", monospace;
+  font-size: 0.8rem;
+  color: #2d3436;
+  display: inline-block;
+}
+
+/* User Info */
+.payment-history-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.payment-history-user-avatar {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* Amount Cell */
+.payment-history-amount-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.payment-history-amount {
+  font-weight: 700;
+  color: #27ae60;
+  font-size: 1.05rem;
+}
+
+.payment-history-refund-badge {
+  background: #f6d86b;
+  color: #2d3436;
+  padding: 0.25rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+/* Method */
+.payment-history-payment-method {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payment-history-payment-method svg {
+  opacity: 0.8;
+}
+
+/* Date & Time */
+.payment-history-datetime-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.payment-history-date {
+  font-weight: 600;
+}
+
+.payment-history-time {
+  font-size: 0.83rem;
+  color: #7f8c8d;
+}
+
+/* Status Badges */
+.payment-history-status-badge {
+  padding: 0.45rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.payment-history-status-completed {
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ecc71;
+  border: 1px solid rgba(46, 213, 115, 0.25);
+}
+
+.payment-history-status-failed {
+  background: rgba(231, 76, 60, 0.15);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.payment-history-status-refunded {
+  background: rgba(241, 196, 15, 0.15);
+  color: #f1c40f;
+  border: 1px solid rgba(241, 196, 15, 0.25);
+}
+
+.payment-history-status-pending {
+  background: rgba(127, 140, 141, 0.15);
+  color: #7f8c8d;
+  border: 1px solid rgba(127, 140, 141, 0.25);
+}
+
+/* Empty State */
+.payment-history-empty-state {
+  text-align: center;
+  padding: 2.5rem;
+  color: #7f8c8d;
+}
+
+.payment-history-empty-text {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* RESPONSIVE TABLE */
+@media (max-width: 768px) {
+  .payment-history-data-table th,
+  .payment-history-data-table td {
+    padding: 0.8rem 1rem;
+  }
+}
