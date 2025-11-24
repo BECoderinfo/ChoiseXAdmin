@@ -10,20 +10,23 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [data, setData] = useState({ phone: "", password: "" });
+  const [data, setData] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!data.phone || !data.password) {
-      enqueueSnackbar("Phone and password are required", { variant: "warning" });
+    if (!data.email || !data.password) {
+      enqueueSnackbar("Email and password are required", { variant: "warning" });
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const response = await loginAdmin(data);
+      const response = await loginAdmin({
+        email: data.email.toLowerCase(),
+        password: data.password
+      });
       login(response.token);
       enqueueSnackbar("Logged in successfully", { variant: "success" });
       navigate("/");
@@ -51,13 +54,13 @@ export default function Login() {
 
             <Form onSubmit={handleSubmit}>
               <Form.Group>
-                <Form.Label>Phone Number</Form.Label>
+                <Form.Label>Email Address</Form.Label>
                 <Form.Control
-                  type="tel"
-                  placeholder="Enter registered phone"
-                  value={data.phone}
+                  type="email"
+                  placeholder="Enter registered email"
+                  value={data.email}
                   onChange={(e) =>
-                    setData({ ...data, phone: e.target.value })
+                    setData({ ...data, email: e.target.value.trim() })
                   }
                 />
               </Form.Group>

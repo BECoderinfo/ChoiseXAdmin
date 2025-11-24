@@ -6,7 +6,7 @@ import { requestPasswordOtp, verifyPasswordOtp } from "../api/auth";
 import "./Auth.css";
 
 export default function ForgotPassword() {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -15,14 +15,14 @@ export default function ForgotPassword() {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
-    if (!phone) {
-      enqueueSnackbar("Please enter your registered phone number", { variant: "warning" });
+    if (!email) {
+      enqueueSnackbar("Please enter your registered email address", { variant: "warning" });
       return;
     }
 
     try {
       setIsSending(true);
-      await requestPasswordOtp({ phone });
+      await requestPasswordOtp({ email: email.toLowerCase() });
       setOtpSent(true);
       enqueueSnackbar("OTP sent successfully", { variant: "success" });
     } catch (error) {
@@ -41,7 +41,7 @@ export default function ForgotPassword() {
 
     try {
       setIsVerifying(true);
-      const response = await verifyPasswordOtp({ phone, otp });
+      const response = await verifyPasswordOtp({ email: email.toLowerCase(), otp });
       enqueueSnackbar("OTP verified", { variant: "success" });
       navigate(`/set-password?token=${response.resetToken}`);
     } catch (error) {
@@ -65,17 +65,17 @@ export default function ForgotPassword() {
           <Card className="auth-card">
             <h2 className="auth-title">Forgot Password</h2>
             <p className="auth-subtitle">
-              Enter your registered phone number to receive an OTP.
+              Enter your registered email address to receive an OTP.
             </p>
 
             <Form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
               <Form.Group>
-                <Form.Label>Registered Phone</Form.Label>
+                <Form.Label>Registered Email</Form.Label>
                 <Form.Control
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  type="email"
+                  placeholder="Enter email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value.trim())}
                   disabled={otpSent}
                 />
               </Form.Group>
@@ -109,7 +109,7 @@ export default function ForgotPassword() {
 
               {!otpSent && (
                 <p className="auth-helper mt-3">
-                  We will send a one-time password to your registered number.
+                  We will send a one-time password to your registered email.
                 </p>
               )}
             </Form>

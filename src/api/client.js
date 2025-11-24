@@ -1,4 +1,5 @@
-const API_BASE_URL = "https://choisex.com/api";
+// const API_BASE_URL = "https://choisex.com/api";
+const API_BASE_URL="http://localhost:5000/api"
 
 let FILE_BASE_URL = API_BASE_URL;
 try {
