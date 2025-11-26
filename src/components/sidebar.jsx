@@ -49,7 +49,6 @@ export default function Sidebar() {
                 <Link to={item.path} className="menu-link">
                   <span className="menu-icon">{item.icon}</span>
                   <span className="menu-label">{item.label}</span>
-                  <span className="active-indicator"></span>
                 </Link>
               </li>
             ))}
