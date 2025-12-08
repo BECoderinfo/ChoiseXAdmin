@@ -3,9 +3,10 @@ import { enqueueSnackbar } from "notistack";
 import { PackagePlus, Trash2 } from "lucide-react";
 import "./styles/AddProduct.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchCategories } from "../api/category";
+import { fetchCategories, createCategory } from "../api/category";
 import { createProduct, fetchProduct, updateProduct, fetchProducts } from "../api/product";
 import { buildAssetUrl } from "../api/client";
+import { fetchSubcategories } from "../api/subcategory";
 
 const generateRandomSKU = () => {
   const randomNum = Math.floor(Math.random() * 99) + 1; // Generates 1-99
@@ -48,6 +49,7 @@ const createEmptyProduct = (sku = "") => ({
   price: "",
   markprice: "",
   category: "",
+  subcategory: "",
   Availability: "",
   Waterproof: "Yes",
   Rechargeable: "Yes",
@@ -58,9 +60,10 @@ const createEmptyProduct = (sku = "") => ({
 });
 
 export default function AddProduct() {
-  const MAX_GALLERY_IMAGES = 4;
+  const MAX_GALLERY_IMAGES = 3;
   const [product, setProduct] = useState(createEmptyProduct());
   const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
   const [mainImageFile, setMainImageFile] = useState(null);
   const [mainImagePreview, setMainImagePreview] = useState("");
   const [galleryFiles, setGalleryFiles] = useState([]);
@@ -69,6 +72,9 @@ export default function AddProduct() {
   const [existingMainImage, setExistingMainImage] = useState("");
   const [existingGallery, setExistingGallery] = useState([]);
   const [isGeneratingSKU, setIsGeneratingSKU] = useState(false);
+  const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [searchParams] = useSearchParams();
   const editProductId = searchParams.get("id");
   const navigate = useNavigate();
@@ -83,6 +89,18 @@ export default function AddProduct() {
       }
     })();
   }, []);
+
+  const loadSubcategories = async () => {
+    try {
+      setIsLoadingSubcategories(true);
+      const response = await fetchSubcategories();
+      setSubcategories(response?.data || []);
+    } catch (error) {
+      enqueueSnackbar(error.message, { variant: "error" });
+    } finally {
+      setIsLoadingSubcategories(false);
+    }
+  };
 
   useEffect(() => {
     if (!mainImageFile) {
@@ -134,6 +152,7 @@ export default function AddProduct() {
           price: data.price || "",
           markprice: data.markprice || "",
           category: data.category?._id || data.category || "",
+          subcategory: data.subcategory?._id || data.subcategory || "",
           Availability: data.availability || "",
           Waterproof: data.waterproof || "Yes",
           Rechargeable: data.rechargeable || "Yes",
@@ -155,6 +174,7 @@ export default function AddProduct() {
         setExistingGallery(data.galleryImages || []);
         setMainImageFile(null);
         setGalleryFiles([]);
+        loadSubcategories();
       } catch (error) {
         enqueueSnackbar(error.message, { variant: "error" });
       } finally {
@@ -162,6 +182,10 @@ export default function AddProduct() {
       }
     })();
   }, [editProductId]);
+
+  useEffect(() => {
+    loadSubcategories();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -185,7 +209,7 @@ export default function AddProduct() {
       const currentTotal = existingGallery.length + prev.length;
 
       if (currentTotal >= MAX_GALLERY_IMAGES) {
-        enqueueSnackbar("Gallery already has 4 images. Remove one to add another.", {
+        enqueueSnackbar("Gallery already has 3 images. Remove one to add another.", {
           variant: "warning",
         });
         return prev;
@@ -195,7 +219,7 @@ export default function AddProduct() {
       const acceptedFiles = files.slice(0, remainingSlots);
 
       if (files.length > remainingSlots) {
-        enqueueSnackbar("Only 4 gallery images are allowed. Extra files were ignored.", {
+        enqueueSnackbar("Only 3 gallery images are allowed. Extra files were ignored.", {
           variant: "warning",
         });
       }
@@ -247,7 +271,7 @@ export default function AddProduct() {
     }
 
     if (existingGallery.length + galleryFiles.length > MAX_GALLERY_IMAGES) {
-      enqueueSnackbar("You can only keep up to 4 gallery images.", { variant: "warning" });
+      enqueueSnackbar("You can only keep up to 3 gallery images.", { variant: "warning" });
       return;
     }
 
@@ -337,11 +361,61 @@ export default function AddProduct() {
                   </option>
                 ))}
               </select>
+              <div className="inline-add-category">
+                <input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Quick add category"
+                  className="add-product-form-input"
+                  style={{ marginTop: "0.5rem" }}
+                />
+                <button
+                  type="button"
+                  className="add-product-btn secondary"
+                  disabled={isAddingCategory || !newCategoryName.trim()}
+                  onClick={async () => {
+                    try {
+                      setIsAddingCategory(true);
+                      const resp = await createCategory({ name: newCategoryName.trim() });
+                      enqueueSnackbar("Category added", { variant: "success" });
+                      setCategories((prev) => [resp?.data, ...prev]);
+                      setProduct((prev) => ({ ...prev, category: resp?.data?._id || prev.category }));
+                      setNewCategoryName("");
+                      if (resp?.data?._id) {
+                        loadSubcategories(resp.data._id);
+                      }
+                    } catch (error) {
+                      enqueueSnackbar(error.message, { variant: "error" });
+                    } finally {
+                      setIsAddingCategory(false);
+                    }
+                  }}
+                >
+                  {isAddingCategory ? "Adding..." : "Add"}
+                </button>
+              </div>
             </div>
             <div className="add-product-form-group">
               <label className="add-product-form-label">Price (₹) *</label>
               <input type="number" name="price" value={product.price} onChange={handleChange} className="add-product-form-input" required />
             </div>
+          </div>
+
+          <div className="add-product-form-group">
+            <label className="add-product-form-label">Subcategory (optional)</label>
+            <select
+              name="subcategory"
+              value={product.subcategory}
+              onChange={handleChange}
+              className="add-product-form-input"
+            >
+              <option value="">{isLoadingSubcategories ? "Loading..." : "Select subcategory"}</option>
+              {subcategories.map((subcat) => (
+                <option key={subcat._id} value={subcat._id}>
+                  {subcat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="add-product-form-row">
@@ -396,7 +470,7 @@ export default function AddProduct() {
 
 
           <div className="add-product-form-group">
-            <label className="add-product-form-label">Gallery Images (Max 4)</label>
+            <label className="add-product-form-label">Gallery Images (Max 3)</label>
 
             {/* Hidden input */}
             <input

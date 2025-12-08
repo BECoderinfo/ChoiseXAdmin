@@ -241,6 +241,27 @@
   transition: 0.3s ease;
 }
 
+.add-product-btn.secondary {
+  width: auto;
+  margin-top: 0.5rem;
+  background: #e9ecef;
+  color: #1e293b;
+  border: 1px solid #d7dce2;
+}
+
+.add-product-btn.secondary:hover {
+  background: #d7dce2;
+  box-shadow: none;
+  transform: none;
+}
+
+.inline-add-category {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
 .add-product-btn:hover {
   background: linear-gradient(135deg, #5a67d8, #6b46c1);
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
