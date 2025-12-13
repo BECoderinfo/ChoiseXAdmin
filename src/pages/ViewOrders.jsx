@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./styles/ViewOrders.css";
 import {
   Package,
@@ -13,55 +13,45 @@ import {
   User,
   ShoppingCart,
   PackagePlus,
+  MapPin,
 } from "lucide-react";
+import { fetchOrders, getTracking, updateTracking, refundOrder } from "../api/order";
+import { useSnackbar } from "notistack";
+import { Modal, Button, Form } from "react-bootstrap";
 
 export default function ViewOrders() {
-  const [orders] = useState([
-    {
-      id: 1,
-      user: "Ravi Kumar",
-      product: "Pressure Sensing Fish Vibrator",
-      price: "2499",
-      status: "Delivered",
-      orderDate: "2025-11-10",
-      deliveryDate: "2025-11-12",
-      address: "Mumbai, Maharashtra",
-      quantity: 1,
-    },
-    {
-      id: 2,
-      user: "Meena Shah",
-      product: "Masturbator Cup",
-      price: "1999",
-      status: "Pending",
-      orderDate: "2025-11-11",
-      deliveryDate: "2025-11-13",
-      address: "Delhi, India",
-      quantity: 2,
-    },
-    {
-      id: 3,
-      user: "Priya Singh",
-      product: "Premium Vibrator",
-      price: "3299",
-      status: "Shipped",
-      orderDate: "2025-11-09",
-      deliveryDate: "2025-11-11",
-      address: "Bangalore, Karnataka",
-      quantity: 1,
-    },
-    {
-      id: 4,
-      user: "Amit Verma",
-      product: "Massage Oil Set",
-      price: "899",
-      status: "Cancelled",
-      orderDate: "2025-11-08",
-      deliveryDate: "2025-11-10",
-      address: "Chennai, Tamil Nadu",
-      quantity: 3,
-    },
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [showTracking, setShowTracking] = useState(false);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [refundingOrderId, setRefundingOrderId] = useState(null);
+  const [trackingForm, setTrackingForm] = useState({
+    referenceNumber: "",
+    estimateDate: "",
+    courierPartner: "",
+    trackingLink: "",
+    status: "Order Confirmed",
+  });
+  const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetchOrders();
+        if (res?.success) {
+          setOrders(res.data || []);
+        }
+      } catch (err) {
+        enqueueSnackbar(err.message || "Failed to load orders", { variant: "error" });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -74,12 +64,174 @@ export default function ViewOrders() {
   };
 
   const totalRevenue = orders.reduce(
-    (sum, order) => sum + parseInt(order.price),
+    (sum, order) => sum + Number(order.totalAmount || 0),
     0
   );
   const deliveredOrders = orders.filter(
     (order) => order.status === "Delivered"
   ).length;
+  const paidOrders = orders.filter((o) => o.paymentStatus === "Paid").length;
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const customerName = order.user?.name || order.address?.name || "";
+      const matchesText =
+        searchText.trim().length === 0 ||
+        (order.orderId || "").toLowerCase().includes(searchText.toLowerCase()) ||
+        customerName.toLowerCase().includes(searchText.toLowerCase()) ||
+        (order.cart?.map((i) => `${i.name} x ${i.quantity}`).join("<br/>") || "").toLowerCase().includes(searchText.toLowerCase()) ||
+        (order.paymentMethod || "").toLowerCase().includes(searchText.toLowerCase());
+
+      // Fix filter: Use order.status for filtering
+      const matchesStatus =
+        statusFilter === "All" ? true : (order.status || "Pending") === statusFilter;
+
+      return matchesText && matchesStatus;
+    });
+  }, [orders, searchText, statusFilter]);
+
+  const openTrackingModal = async (order) => {
+    setSelectedOrder(order);
+    setShowTracking(true);
+    setTrackingLoading(true);
+    try {
+      const res = await getTracking(order.orderId);
+      const data = res?.data || {};
+      setTrackingForm({
+        referenceNumber: data.referenceNumber || "",
+        estimateDate: data.estimateDate ? data.estimateDate.split("T")[0] : "",
+        courierPartner: data.courierPartner || "",
+        trackingLink: data.trackingLink || "",
+        status: data.status || "Order Confirmed",
+      });
+    } catch (err) {
+      enqueueSnackbar(err.message || "Failed to load tracking", { variant: "error" });
+      setTrackingForm({
+        referenceNumber: "",
+        estimateDate: "",
+        courierPartner: "",
+        trackingLink: "",
+        status: "Order Confirmed",
+      });
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+
+  const handleTrackingSave = async () => {
+    if (!selectedOrder) return;
+    const { referenceNumber, estimateDate, courierPartner, trackingLink, status } = trackingForm;
+    if (!referenceNumber || !estimateDate || !courierPartner || !trackingLink || !status) {
+      enqueueSnackbar("All tracking fields are required", { variant: "warning" });
+      return;
+    }
+    try {
+      setTrackingLoading(true);
+      await updateTracking(selectedOrder.orderId, {
+        referenceNumber,
+        estimateDate,
+        courierPartner,
+        trackingLink,
+        status,
+      });
+      enqueueSnackbar("Tracking updated", { variant: "success" });
+      
+      // Refresh orders to get updated status from backend
+      const res = await fetchOrders();
+      if (res?.success) {
+        setOrders(res.data || []);
+      }
+      
+      setShowTracking(false);
+    } catch (err) {
+      enqueueSnackbar(err.message || "Failed to update tracking", { variant: "error" });
+    } finally {
+      setTrackingLoading(false);
+    }
+  };
+  const handleRefund = async (order) => {
+    try {
+      setRefundingOrderId(order.orderId);
+      const res = await refundOrder(order.orderId);
+      if (res?.success) {
+        enqueueSnackbar("Refund processed", { variant: "success" });
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.orderId === order.orderId
+              ? { ...o, refundStatus: res.data?.refundStatus || "Refunded", refundId: res.data?.refundId }
+              : o
+          )
+        );
+      } else {
+        enqueueSnackbar(res?.message || "Refund failed", { variant: "error" });
+      }
+    } catch (err) {
+      enqueueSnackbar(err.message || "Refund failed", { variant: "error" });
+    } finally {
+      setRefundingOrderId(null);
+    }
+  };
+
+  const handleExportPDF = () => {
+ 
+    const printable = filteredOrders;
+    const newWindow = window.open("", "_blank");
+    if (!newWindow) return;
+
+    const rows = printable
+      .map(
+        (order) => `
+        <tr>
+          <td>${order.orderId || ""}</td>
+          <td>${order.address?.name || "Customer"}</td>
+          <td>${order.cart?.map((i) => `${i.name} x ${i.quantity}`).join("<br/>") || "-"}</td>
+          <td>₹${order.totalAmount || 0}</td>
+          <td>${order.paymentMethod || "N/A"} / ${order.paymentStatus || "Pending"}</td>
+          <td>${order.date || order.createdAt || ""}</td>
+          <td>${order.status || "Pending"}</td>
+        </tr>
+      `
+      )
+      .join("");
+
+    newWindow.document.write(`
+      <html>
+        <head>
+          <title>Orders Export</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 24px; color: #1f2937; }
+            h2 { margin-bottom: 12px; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; vertical-align: top; }
+            th { background: #f3f4f6; }
+            .summary { margin-bottom: 16px; font-size: 13px; }
+          </style>
+        </head>
+        <body>
+          <h2>Orders Report</h2>
+          <div class="summary">
+            Total Orders: ${printable.length} | Revenue: ₹${totalRevenue.toLocaleString()}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body>
+      </html>
+    `);
+    newWindow.document.close();
+    newWindow.print();
+  };
 
   return (
     <div className="view-orders-container">
@@ -143,6 +295,17 @@ export default function ViewOrders() {
             </div>
           </div>
         </div>
+        <div className="view-orders-stat-card">
+          <div className="view-orders-stat-content">
+            <div className="view-orders-stat-icon">
+              <CheckCircle size={26} className="view-orders-stat-icon-icon" />
+            </div>
+            <div className="view-orders-stat-info">
+              <h3>{paidOrders}</h3>
+              <p>Paid (Razorpay)</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Orders Table */}
@@ -150,11 +313,25 @@ export default function ViewOrders() {
         <div className="view-orders-table-header">
           <h3 className="view-orders-table-title">Recent Orders</h3>
           <div className="view-orders-table-actions">
-            <button className="view-orders-secondary-btn">
-              <Download size={14} style={{ marginRight: "6px" }} /> Export
-            </button>
-            <button className="view-orders-secondary-btn">
-              <Filter size={14} style={{ marginRight: "6px" }} /> Filter
+            <input
+              className="view-orders-search"
+              placeholder="Search by order ID or customer"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+            <select
+              className="view-orders-search"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+            <button className="view-orders-secondary-btn d-flex align-items-center justify-content-center" onClick={handleExportPDF}>
+              <Download size={14} style={{ marginRight: "6px" }} /> Export PDF
             </button>
           </div>
         </div>
@@ -163,47 +340,105 @@ export default function ViewOrders() {
           <table className="view-orders-data-table">
             <thead>
               <tr>
-                <th>Order ID</th>
+            <th>Order ID</th>
                 <th>Customer</th>
-                <th>Product</th>
-                <th>Quantity</th>
+                <th>Items</th>
                 <th>Amount</th>
+                <th>Payment</th>
                 <th>Order Date</th>
                 <th>Status</th>
+            <th>Tracking</th>
   
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => {
-                const statusInfo = getStatusBadge(order.status);
+            {filteredOrders.map((order) => {
+                // Map tracking status to order status for display
+                let displayStatus = order.status;
+                
+                // If order is Cancelled, always show Cancelled (don't override)
+                if (order.status === "Cancelled") {
+                  displayStatus = "Cancelled";
+                } 
+                // If order has tracking, map tracking status to order status
+                else if (order.tracking?.status) {
+                  if (order.tracking.status === "Order Confirmed") {
+                    displayStatus = "Pending";
+                  } else if (order.tracking.status === "Picked by Courier") {
+                    displayStatus = "Shipped";
+                  } else if (order.tracking.status === "Delivered") {
+                    displayStatus = "Delivered";
+                  }
+                }
+                
+                const statusInfo = getStatusBadge(displayStatus);
+                
                 return (
-                  <tr key={order.id}>
-                    <td>
-                      <strong>#ORD-{order.id.toString().padStart(4, "0")}</strong>
+                  <tr key={order.orderId}>
+                    <td style={{fontSize: "0.8em"}}>
+                      <strong>{order.orderId}</strong>
                     </td>
                     <td>
                       <div className="view-orders-user-info">
-                        <div className="view-orders-user-avatar">
-                          <User size={18} />
-                        </div>
                         <div>
-                          <div className="view-orders-user-name">{order.user}</div>
-                          <div className="view-orders-user-address">{order.address}</div>
+                          <div className="view-orders-user-name">
+                            {order.user?.name || order.address?.name || "Customer"}
+                          </div>
+                          <div className="view-orders-user-address">
+                            {order.address?.city}, {order.address?.state}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="view-orders-product-name">{order.product}</td>
                     <td>
-                      <span className="view-orders-quantity-badge">{order.quantity}</span>
+                      <div className="view-orders-product-name" style={{fontSize: "0.9rem"}}>
+                        {order.cart?.map((item) => (
+                          <div key={item.id || item._id} className="view-orders-item-line">
+                            {item.name} x {item.quantity}
+                          </div>
+                        ))}
+                      </div>
                     </td>
                     <td>
-                      <strong className="view-orders-price">₹{order.price}</strong>
+                      <strong className="view-orders-price">₹{order.totalAmount}</strong>
                     </td>
-                    <td>{order.orderDate}</td>
+                    <td>
+                      <div className="payment-pill" style={{fontSize: "0.9rem"}}>
+                        {order.paymentMethod || "N/A"} / {order.paymentStatus || "Pending"}
+                      </div>
+                      {order.refundStatus && (
+                        <div className="small text-muted">Refund: {order.refundStatus}</div>
+                      )}
+                    </td>
+                    <td style={{fontSize: "0.9rem"}}>{order.date || order.createdAt}</td>
                     <td>
                       <span className={`view-orders-status-badge ${statusInfo.class}`}>
-                        {statusInfo.icon}{statusInfo.label}
+                        {statusInfo.label}
                       </span>
+                    </td>
+                    <td>
+                      {order.status !== "Cancelled" && (
+                        <button
+                          className="view-orders-secondary-btn d-flex align-items-center"
+                          onClick={() => openTrackingModal(order)}
+                        >
+                          {order.tracking?.status || "Add"}
+                        </button>
+                      )}
+
+                      
+                      {order.paymentMethod === "Razorpay" &&
+                        order.paymentStatus === "Paid" &&
+                        order.status === "Cancelled" &&
+                        order.refundStatus !== "Refunded" && (
+                          <button
+                            className="view-orders-secondary-btn d-flex align-items-center mt-2"
+                            onClick={() => handleRefund(order)}
+                            disabled={refundingOrderId === order.orderId}
+                          >
+                            {refundingOrderId === order.orderId ? "Refunding..." : "Refund"}
+                          </button>
+                        )}
                     </td>
                   </tr>
                 );
@@ -217,7 +452,94 @@ export default function ViewOrders() {
             <p className="view-orders-empty-text">No orders found</p>
           </div>
         )}
+        {loading && (
+          <div className="view-orders-empty-state">
+            <p className="view-orders-empty-text">Loading orders...</p>
+          </div>
+        )}
       </div>
+
+      <Modal show={showTracking} onHide={() => setShowTracking(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Update Tracking</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {trackingLoading ? (
+            <p>Loading...</p>
+          ) : (
+            <Form>
+              <Form.Group className="mb-3">
+                <Form.Label>Delivery Reference Number</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={trackingForm.referenceNumber}
+                  onChange={(e) =>
+                    setTrackingForm((prev) => ({ ...prev, referenceNumber: e.target.value }))
+                  }
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Delivery Estimated Date</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={trackingForm.estimateDate}
+                  onChange={(e) =>
+                    setTrackingForm((prev) => ({ ...prev, estimateDate: e.target.value }))
+                  }
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Courier Partner Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={trackingForm.courierPartner}
+                  onChange={(e) =>
+                    setTrackingForm((prev) => ({ ...prev, courierPartner: e.target.value }))
+                  }
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Tracking Link</Form.Label>
+                <Form.Control
+                  type="url"
+                  value={trackingForm.trackingLink}
+                  onChange={(e) =>
+                    setTrackingForm((prev) => ({ ...prev, trackingLink: e.target.value }))
+                  }
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Status</Form.Label>
+                <Form.Select
+                  value={trackingForm.status}
+                  onChange={(e) =>
+                    setTrackingForm((prev) => ({ ...prev, status: e.target.value }))
+                  }
+                  required
+                >
+                  <option>Order Confirmed</option>
+                  <option>Picked by Courier</option>
+                  <option>On the Way</option>
+                  <option>Ready for Pickup</option>
+                  <option>Delivered</option>
+                </Form.Select>
+              </Form.Group>
+            </Form>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowTracking(false)}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleTrackingSave} disabled={trackingLoading}>
+            {trackingLoading ? "Saving..." : "Save"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

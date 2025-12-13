@@ -3,14 +3,23 @@ import { User, Settings, LogOut } from "lucide-react";
 import "./styles/Header.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../authentication/useAuth";
+import { logoutAdmin } from "../api/auth";
 
 export default function Header() {
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      // Call backend logout API
+      await logoutAdmin();
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear local state and navigate
+      logout();
+      navigate("/login", { replace: true });
+    }
   };
   return (
     <Navbar className="admin-header" expand="lg">

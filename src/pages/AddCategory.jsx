@@ -31,6 +31,7 @@ export default function AddCategory() {
   const [editSubId, setEditSubId] = useState(null);
   const [isSubmittingSub, setIsSubmittingSub] = useState(false);
   const [isLoadingSub, setIsLoadingSub] = useState(true);
+  const [mainImageError, setMainImageError] = useState("");
 const categoryFormRef = useRef(null);
 const subcategoryFormRef = useRef(null);
 
@@ -159,6 +160,16 @@ const subcategoryFormRef = useRef(null);
   const handleSubImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      const maxSize = 1 * 1024 * 1024; // 1 MB in bytes
+      if (file.size > maxSize) {
+        setMainImageError("Max 1 MB size");
+        setSubImageFile(null);
+        setSubImagePreview("");
+        e.target.value = ""; // Clear the input
+        enqueueSnackbar("Image size exceeds 1 MB. Please select a smaller image.", { variant: "error" });
+        return;
+      }
+      setMainImageError("");
       setSubImageFile(file);
       const previewUrl = URL.createObjectURL(file);
       setSubImagePreview(previewUrl);
@@ -276,6 +287,9 @@ const subcategoryFormRef = useRef(null);
               <div className="subcat-image-preview">
                 <img src={subImagePreview} alt="Subcategory preview" />
               </div>
+            )}
+            {mainImageError && (
+              <div className="image-error-message">{mainImageError}</div>
             )}
           </div>
 

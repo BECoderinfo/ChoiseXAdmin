@@ -43,6 +43,34 @@ const generateUniqueSKU = async () => {
   }
 };
 
+const getDefaultUserImage = (categoryId, categoriesList, categoryName) => {
+  const selectedCategory = categoriesList?.find(
+    (cat) => cat._id === categoryId
+  );
+
+  const name = (categoryName || selectedCategory?.name || "").toLowerCase();
+
+  // If category is women
+  if (name === "women" || name === "woman") {
+    const number = Math.floor(Math.random() * 99) + 1; // 1–99
+    return `https://randomuser.me/api/portraits/women/${number}.jpg`;
+  }
+
+  // If category is men
+  if (name === "men" || name === "man") {
+    const number = Math.floor(Math.random() * 99) + 1; // 1–99
+    return `https://randomuser.me/api/portraits/men/${number}.jpg`;
+  }
+
+  // For others → random men/women
+  const genders = ["men", "women"];
+  const gender = genders[Math.floor(Math.random() * genders.length)];
+  const number = Math.floor(Math.random() * 99) + 1;
+
+  return `https://randomuser.me/api/portraits/${gender}/${number}.jpg`;
+};
+
+
 const createEmptyProduct = (sku = "") => ({
   SKU: sku,
   name: "",
@@ -75,6 +103,8 @@ export default function AddProduct() {
   const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [mainImageError, setMainImageError] = useState("");
+  const [galleryError, setGalleryError] = useState("");
   const [searchParams] = useSearchParams();
   const editProductId = searchParams.get("id");
   const navigate = useNavigate();
@@ -175,6 +205,20 @@ export default function AddProduct() {
         setMainImageFile(null);
         setGalleryFiles([]);
         loadSubcategories();
+
+        const defaultImage = getDefaultUserImage(
+          data.category?._id || data.category || "",
+          categories,
+          data.category?.name
+        );
+
+        setProduct((prev) => ({
+          ...prev,
+          customerrating: prev.customerrating.map((review) => ({
+            ...review,
+            userimage: defaultImage,
+          })),
+        }));
       } catch (error) {
         enqueueSnackbar(error.message, { variant: "error" });
       } finally {
@@ -189,12 +233,35 @@ export default function AddProduct() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "category") {
+      const defaultImage = getDefaultUserImage(value, categories);
+      setProduct((prev) => ({
+        ...prev,
+        category: value,
+        customerrating: prev.customerrating.map((review) => ({
+          ...review,
+          userimage: defaultImage,
+        })),
+      }));
+      return;
+    }
+
     setProduct({ ...product, [name]: value });
   };
 
   const handleMainImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      const maxSize = 1 * 1024 * 1024; // 1 MB in bytes
+      if (file.size > maxSize) {
+        setMainImageError("Max 1 MB size");
+        setMainImageFile(null);
+        setMainImagePreview("");
+        e.target.value = ""; // Clear the input
+        enqueueSnackbar("Image size exceeds 1 MB. Please select a smaller image.", { variant: "error" });
+        return;
+      }
+      setMainImageError("");
       setMainImageFile(file);
     }
   };
@@ -204,6 +271,27 @@ export default function AddProduct() {
     e.target.value = "";
 
     if (!files.length) return;
+
+    const maxSize = 1 * 1024 * 1024; // 1 MB in bytes
+    const validFiles = [];
+    let hasError = false;
+
+    files.forEach((file) => {
+      if (file.size > maxSize) {
+        hasError = true;
+        enqueueSnackbar(`${file.name} exceeds 1 MB. Skipped.`, { variant: "error" });
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (hasError) {
+      setGalleryError("Max 1 MB size");
+    } else {
+      setGalleryError("");
+    }
+
+    if (!validFiles.length) return;
 
     setGalleryFiles((prev) => {
       const currentTotal = existingGallery.length + prev.length;
@@ -216,9 +304,9 @@ export default function AddProduct() {
       }
 
       const remainingSlots = MAX_GALLERY_IMAGES - currentTotal;
-      const acceptedFiles = files.slice(0, remainingSlots);
+      const acceptedFiles = validFiles.slice(0, remainingSlots);
 
-      if (files.length > remainingSlots) {
+      if (validFiles.length > remainingSlots) {
         enqueueSnackbar("Only 3 gallery images are allowed. Extra files were ignored.", {
           variant: "warning",
         });
@@ -230,10 +318,12 @@ export default function AddProduct() {
 
   const handleRemoveExistingGallery = (index) => {
     setExistingGallery((prev) => prev.filter((_, i) => i !== index));
+    setGalleryError("");
   };
 
   const handleRemoveNewGallery = (index) => {
     setGalleryFiles((prev) => prev.filter((_, i) => i !== index));
+    setGalleryError("");
   };
 
   const handleReviewChange = (index, field, value) => {
@@ -247,7 +337,12 @@ export default function AddProduct() {
       ...product,
       customerrating: [
         ...product.customerrating,
-        { star: 5, Review: "", username: "", userimage: "" },
+        {
+          star: 5,
+          Review: "",
+          username: "",
+          userimage: getDefaultUserImage(product.category, categories),
+        },
       ],
     });
   };
@@ -458,6 +553,9 @@ export default function AddProduct() {
               Select Main Image
             </label>
 
+            {mainImageError && (
+              <div className="image-error-message">{mainImageError}</div>
+            )}
             {(mainImagePreview || existingMainImage) && (
               <div className="image-preview">
                 <img
@@ -486,6 +584,10 @@ export default function AddProduct() {
             <label htmlFor="galleryInput" className="custom-upload-btn">
               Select Gallery Images
             </label>
+
+            {galleryError && (
+              <div className="image-error-message">{galleryError}</div>
+            )}
 
             {existingGallery.length > 0 && (
               <div className="existing-gallery-grid">
@@ -579,7 +681,12 @@ export default function AddProduct() {
 
                 <div className="add-product-form-group">
                   <label className="add-product-form-label">User Image</label>
-                  <input value={review.userimage} onChange={(e) => handleReviewChange(index, "userimage", e.target.value)} className="add-product-form-input" />
+                  <input
+                    value={review.userimage}
+                    readOnly
+                    className="add-product-form-input"
+                    style={{ backgroundColor: "#e9ecef", cursor: "not-allowed" }}
+                  />
                 </div>
 
                 <button type="button" className="delete-review-btn" onClick={() => deleteReview(index)}>

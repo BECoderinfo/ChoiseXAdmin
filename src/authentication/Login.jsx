@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Form, Button, Card, Container, Row, Col } from "react-bootstrap";
 import { useNavigate, Link } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
@@ -7,11 +7,18 @@ import { useAuth } from "./useAuth";
 import "./Auth.css";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, token } = useAuth();
   const navigate = useNavigate();
 
   const [data, setData] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Navigate when token is set
+  useEffect(() => {
+    if (token) {
+      navigate("/", { replace: true });
+    }
+  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,9 +34,19 @@ export default function Login() {
         email: data.email.toLowerCase(),
         password: data.password
       });
-      login(response.token);
+      
+      // Backend returns accessToken and refreshToken
+      const accessToken = response.accessToken || response.token;
+      const refreshTokenValue = response.refreshToken;
+      
+      if (!accessToken) {
+        throw new Error("No access token received from server");
+      }
+      
+      // Store both tokens - navigation will happen via useEffect when token is set
+      login(accessToken, refreshTokenValue);
+      
       enqueueSnackbar("Logged in successfully", { variant: "success" });
-      navigate("/");
     } catch (error) {
       enqueueSnackbar(error.message, { variant: "error" });
     } finally {

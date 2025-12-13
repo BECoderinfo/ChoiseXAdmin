@@ -1,4 +1,4 @@
-import { Container, Row, Col, Card } from "react-bootstrap";
+import { Container, Row, Col, Card, Spinner } from "react-bootstrap";
 import {
   Package,
   ShoppingCart,
@@ -14,23 +14,118 @@ import {
 } from "lucide-react";
 import "./styles/Dashboard.css";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { fetchProducts } from "../api/product";
+import { fetchOrders } from "../api/order";
+import { fetchAdminUsers } from "../api/users";
+import { useSnackbar } from "notistack";
 
 export default function Dashboard() {
-
   const Navigate = useNavigate();
-  const stats = [
-    { label: "Total Products", value: "24", icon: <Package size={26} />, trend: "+12%", color: "primary" },
-    { label: "Total Orders", value: "156", icon: <ShoppingCart size={26} />, trend: "+8%", color: "success" },
-    { label: "Total Users", value: "892", icon: <Users size={26} />, trend: "+23%", color: "info" },
-    { label: "Revenue", value: "₹2,45,699", icon: <CreditCard size={26} />, trend: "+15%", color: "warning" },
-  ];
+  const { enqueueSnackbar } = useSnackbar();
+  const [stats, setStats] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+  
 
-  const recentActivities = [
-    { icon: <ListOrdered size={18} />, text: "New order #ORD-0012 placed", time: "2 min ago" },
-    { icon: <Package size={18} />, text: 'Product "Pressure Sensing Device" added', time: "1 hour ago" },
-    { icon: <Users size={18} />, text: "New user registration", time: "2 hours ago" },
-    { icon: <CreditCard size={18} />, text: "Payment of ₹2,499 received", time: "3 hours ago" },
-  ];
+  
+
+  const formatRelativeTime = (date) => {
+    if (!date) return "just now";
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hr ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [productsRes, ordersRes, usersRes] = await Promise.all([
+          fetchProducts(),
+          fetchOrders(),
+          fetchAdminUsers(),
+        ]);
+
+        const products = productsRes?.data || [];
+        const orders = ordersRes?.data || [];
+        const users = usersRes?.data || [];
+
+        const revenue = orders.reduce(
+          (sum, order) => sum + Number(order.totalAmount || 0),
+          0
+        );
+
+        setStats([
+          { label: "Total Products", value: products.length, icon: <Package size={26} />, color: "primary" },
+          { label: "Total Orders", value: orders.length, icon: <ShoppingCart size={26} />, color: "success" },
+          { label: "Total Users", value: users.length, icon: <Users size={26} />, color: "info" },
+          { label: "Revenue", value: `₹${revenue.toLocaleString()}`, icon: <CreditCard size={26} />, color: "warning" },
+        ]);
+
+        // Merge ALL activities first, then sort, then take top 6
+        const activities = [];
+
+        // Add all orders (not just first 5)
+        orders.forEach((o) => {
+          if (o.createdAt || o.orderDate) {
+            activities.push({
+              createdAt: o.createdAt || o.orderDate,
+              icon: <ListOrdered size={18} />,
+              text: `Order ${o.orderId || o.id || ""} placed`,
+            });
+          }
+        });
+
+        // Add all products (not just first 5)
+        products.forEach((p) => {
+          if (p.createdAt) {
+            activities.push({
+              createdAt: p.createdAt,
+              icon: <Package size={18} />,
+              text: `Product "${p.name || "New Product"}" added`,
+            });
+          }
+        });
+
+        // Add all users (not just first 5) - use joinDate instead of createdAt
+        users.forEach((u) => {
+          // Backend returns joinDate, not createdAt
+          const userDate = u.joinDate || u.createdAt;
+          if (userDate) {
+            activities.push({
+              createdAt: userDate,
+              icon: <Users size={18} />,
+              text: `User ${u.name || u.username || "New User"} registered`,
+            });
+          }
+        });
+
+        // Sort ALL activities by date (newest first), then take top 6
+        const sortedActivities = activities
+          .filter((a) => a.createdAt) // Only include activities with valid dates
+          .sort((a, b) => {
+            const dateA = new Date(a.createdAt);
+            const dateB = new Date(b.createdAt);
+            return dateB - dateA; // Newest first
+          })
+          .slice(0, 6) // Take only the latest 6
+          .map((a) => ({
+            ...a,
+            time: formatRelativeTime(a.createdAt),
+          }));
+
+        setRecentActivities(sortedActivities);
+      } catch (error) {
+        enqueueSnackbar(error.message || "Failed to load dashboard data", { variant: "error" });
+      } 
+    })();
+  }, []);
 
   const quickActions = [
     { icon: <PlusCircle size={18} />, text: "Add New Product", color: "primary" ,nav:'/add-product'},
