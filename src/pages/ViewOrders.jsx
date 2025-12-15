@@ -59,6 +59,7 @@ export default function ViewOrders() {
       Pending: { class: "view-orders-status-pending", icon: <Clock size={14} />, label: "Pending" },
       Shipped: { class: "view-orders-status-shipped", icon: <Truck size={14} />, label: "Shipped" },
       Cancelled: { class: "view-orders-status-cancelled", icon: <XCircle size={14} />, label: "Cancelled" },
+      "Payment Failed": { class: "view-orders-status-cancelled", icon: <XCircle size={14} />, label: "Payment Failed" },
     };
     return statusConfig[status] || statusConfig["Pending"];
   };
@@ -135,13 +136,13 @@ export default function ViewOrders() {
         status,
       });
       enqueueSnackbar("Tracking updated", { variant: "success" });
-      
+
       // Refresh orders to get updated status from backend
       const res = await fetchOrders();
       if (res?.success) {
         setOrders(res.data || []);
       }
-      
+
       setShowTracking(false);
     } catch (err) {
       enqueueSnackbar(err.message || "Failed to update tracking", { variant: "error" });
@@ -173,7 +174,7 @@ export default function ViewOrders() {
   };
 
   const handleExportPDF = () => {
- 
+
     const printable = filteredOrders;
     const newWindow = window.open("", "_blank");
     if (!newWindow) return;
@@ -235,14 +236,14 @@ export default function ViewOrders() {
 
   return (
     <div className="view-orders-container">
-  
+
       <div className="add-product-header">
         <div className="add-product-icon">
           <ShoppingCart size={40} strokeWidth={1.8} />
         </div>
         <h1 className="add-product-title">View Orders</h1>
         <p className="add-product-subtitle">
-        Manage and track all orders efficiently.
+          Manage and track all orders efficiently.
         </p>
       </div>
 
@@ -251,8 +252,8 @@ export default function ViewOrders() {
         <div className="view-orders-stat-card">
           <div className="view-orders-stat-content">
             <div className="view-orders-stat-icon">
-            <ShoppingCart size={26} className="view-orders-stat-icon-icon" />
-              </div>
+              <ShoppingCart size={26} className="view-orders-stat-icon-icon" />
+            </div>
             <div className="view-orders-stat-info">
               <h3>{orders.length}</h3>
               <p>Total Orders</p>
@@ -262,8 +263,8 @@ export default function ViewOrders() {
 
         <div className="view-orders-stat-card">
           <div className="view-orders-stat-content">
-          <div className="view-orders-stat-icon">
-            <IndianRupee size={26} className="view-orders-stat-icon-icon" />
+            <div className="view-orders-stat-icon">
+              <IndianRupee size={26} className="view-orders-stat-icon-icon" />
             </div>
             <div className="view-orders-stat-info">
               <h3>₹{totalRevenue.toLocaleString()}</h3>
@@ -274,8 +275,8 @@ export default function ViewOrders() {
 
         <div className="view-orders-stat-card">
           <div className="view-orders-stat-content">
-          <div className="view-orders-stat-icon">
-            <CheckCircle size={26} className="view-orders-stat-icon-icon" />
+            <div className="view-orders-stat-icon">
+              <CheckCircle size={26} className="view-orders-stat-icon-icon" />
             </div>
             <div className="view-orders-stat-info">
               <h3>{deliveredOrders}</h3>
@@ -286,8 +287,8 @@ export default function ViewOrders() {
 
         <div className="view-orders-stat-card">
           <div className="view-orders-stat-content">
-          <div className="view-orders-stat-icon">
-            <Clock size={26} className="view-orders-stat-icon-icon" />
+            <div className="view-orders-stat-icon">
+              <Clock size={26} className="view-orders-stat-icon-icon" />
             </div>
             <div className="view-orders-stat-info">
               <h3>{orders.filter((o) => o.status === "Pending").length}</h3>
@@ -340,22 +341,25 @@ export default function ViewOrders() {
           <table className="view-orders-data-table">
             <thead>
               <tr>
-            <th>Order ID</th>
+                <th>Order ID</th>
                 <th>Customer</th>
                 <th>Items</th>
                 <th>Amount</th>
                 <th>Payment</th>
                 <th>Order Date</th>
                 <th>Status</th>
-            <th>Tracking</th>
-  
+                <th>Tracking</th>
+
               </tr>
             </thead>
             <tbody>
-            {filteredOrders.map((order) => {
+              {filteredOrders.map((order) => {
                 // Map tracking status to order status for display
                 let displayStatus = order.status;
                 
+                if (order.paymentStatus === "Failed") {
+                  displayStatus = "Payment Failed";
+                }
                 // If order is Cancelled, always show Cancelled (don't override)
                 if (order.status === "Cancelled") {
                   displayStatus = "Cancelled";
@@ -370,12 +374,12 @@ export default function ViewOrders() {
                     displayStatus = "Delivered";
                   }
                 }
-                
+
                 const statusInfo = getStatusBadge(displayStatus);
-                
+
                 return (
                   <tr key={order.orderId}>
-                    <td style={{fontSize: "0.8em"}}>
+                    <td style={{ fontSize: "0.8em" }}>
                       <strong>{order.orderId}</strong>
                     </td>
                     <td>
@@ -390,56 +394,58 @@ export default function ViewOrders() {
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div className="view-orders-product-name" style={{fontSize: "0.9rem"}}>
-                        {order.cart?.map((item) => (
-                          <div key={item.id || item._id} className="view-orders-item-line">
-                            {item.name} x {item.quantity}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      <strong className="view-orders-price">₹{order.totalAmount}</strong>
-                    </td>
-                    <td>
-                      <div className="payment-pill" style={{fontSize: "0.9rem"}}>
-                        {order.paymentMethod || "N/A"} / {order.paymentStatus || "Pending"}
-                      </div>
-                      {order.refundStatus && (
-                        <div className="small text-muted">Refund: {order.refundStatus}</div>
-                      )}
-                    </td>
-                    <td style={{fontSize: "0.9rem"}}>{order.date || order.createdAt}</td>
-                    <td>
-                      <span className={`view-orders-status-badge ${statusInfo.class}`}>
-                        {statusInfo.label}
-                      </span>
-                    </td>
-                    <td>
-                      {order.status !== "Cancelled" && (
-                        <button
-                          className="view-orders-secondary-btn d-flex align-items-center"
-                          onClick={() => openTrackingModal(order)}
-                        >
-                          {order.tracking?.status || "Add"}
-                        </button>
-                      )}
-
-                      
-                      {order.paymentMethod === "Razorpay" &&
-                        order.paymentStatus === "Paid" &&
-                        order.status === "Cancelled" &&
-                        order.refundStatus !== "Refunded" && (
+                    
+                      <td>
+                        <div className="view-orders-product-list">
+                          {order.cart?.map((item) => (
+                            <div key={item.id || item._id} className="view-orders-item-line d-flex align-items-center gap-2">
+                              <img src={item.image} alt={item.name} className="view-orders-product-image" />
+                              <span className="view-orders-product-nameSpan">{item.name} x {item.quantity}</span> 
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <strong className="view-orders-price">₹{order.totalAmount}</strong>
+                      </td>
+                      <td>
+                        <div className="payment-pill" style={{ fontSize: "0.9rem" }}>
+                          {order.paymentMethod || "N/A"} / {order.paymentStatus || "Pending"}
+                        </div>
+                        {order.refundStatus && (
+                          <div className="small text-muted">Refund: {order.refundStatus}</div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: "0.9rem" }}>{order.date || order.createdAt}</td>
+                      <td>
+                        <span className={`view-orders-status-badge ${statusInfo.class}`}>
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                      <td>
+                        {order.status !== "Cancelled" && (
                           <button
-                            className="view-orders-secondary-btn d-flex align-items-center mt-2"
-                            onClick={() => handleRefund(order)}
-                            disabled={refundingOrderId === order.orderId}
+                            className="view-orders-secondary-btn d-flex align-items-center"
+                            onClick={() => openTrackingModal(order)}
                           >
-                            {refundingOrderId === order.orderId ? "Refunding..." : "Refund"}
+                            {order.tracking?.status || "Add"}
                           </button>
                         )}
-                    </td>
+
+
+                        {order.paymentMethod === "Razorpay" &&
+                          order.paymentStatus === "Paid" &&
+                          order.status === "Cancelled" &&
+                          order.refundStatus !== "Refunded" && (
+                            <button
+                              className="view-orders-secondary-btn d-flex align-items-center mt-2"
+                              onClick={() => handleRefund(order)}
+                              disabled={refundingOrderId === order.orderId}
+                            >
+                              {refundingOrderId === order.orderId ? "Refunding..." : "Refund"}
+                            </button>
+                          )}
+                      </td>
                   </tr>
                 );
               })}
