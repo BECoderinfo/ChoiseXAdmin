@@ -7,6 +7,13 @@ export function fetchOrders() {
   });
 }
 
+export function fetchOrder(orderId) {
+  return request(`/admin/orders/${orderId}`, {
+    method: "GET",
+  });
+}
+
+
 export function getTracking(orderId) {
   return request(`/order/get-tracking/${orderId}`, { method: "GET" });
 }

@@ -29,8 +29,8 @@ export default function AppRoutes() {
           path="/"
           element={
             <Protected>
-      <Layout />
-    </Protected>
+              <Layout />
+            </Protected>
           }
         >
           <Route index element={<Dashboard />} />

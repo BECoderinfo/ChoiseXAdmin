@@ -14,10 +14,14 @@ import {
   ShoppingCart,
   PackagePlus,
   MapPin,
+  Phone,
+  Mail,
+  FileText,
 } from "lucide-react";
 import { fetchOrders, getTracking, updateTracking, refundOrder } from "../api/order";
 import { useSnackbar } from "notistack";
 import { Modal, Button, Form } from "react-bootstrap";
+import jsPDF from "jspdf";
 
 export default function ViewOrders() {
   const [orders, setOrders] = useState([]);
@@ -28,6 +32,8 @@ export default function ViewOrders() {
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [refundingOrderId, setRefundingOrderId] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [detailsOrder, setDetailsOrder] = useState(null);
   const [trackingForm, setTrackingForm] = useState({
     referenceNumber: "",
     estimateDate: "",
@@ -137,6 +143,15 @@ export default function ViewOrders() {
       });
       enqueueSnackbar("Tracking updated", { variant: "success" });
 
+      // Update order with tracking data immediately
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.orderId === selectedOrder.orderId
+            ? { ...o, tracking: { ...trackingForm, estimateDate: trackingForm.estimateDate + "T00:00:00" } }
+            : o
+        )
+      );
+
       // Refresh orders to get updated status from backend
       const res = await fetchOrders();
       if (res?.success) {
@@ -170,6 +185,20 @@ export default function ViewOrders() {
       enqueueSnackbar(err.message || "Refund failed", { variant: "error" });
     } finally {
       setRefundingOrderId(null);
+    }
+  };
+
+  const openDetailsModal = async (order) => {
+    setDetailsOrder(order);
+    setShowDetails(true);
+    // Fetch tracking info if available
+    try {
+      const res = await getTracking(order.orderId);
+      if (res?.data) {
+        setDetailsOrder({ ...order, tracking: res.data });
+      }
+    } catch (err) {
+      // Tracking not available, continue with order details
     }
   };
 
@@ -233,6 +262,108 @@ export default function ViewOrders() {
     newWindow.document.close();
     newWindow.print();
   };
+
+  const handleDownloadCourierSlip = (order) => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+  
+      const pageWidth = 210;
+      const pageHeight = 297;
+  
+      const margin = 10;
+      const slipWidth = pageWidth - margin * 2;
+      const slipHeight = (pageHeight - margin * 3) / 2;
+  
+      const drawInvoice = (x, y, data) => {
+        // Border
+        pdf.setLineWidth(0.6);
+        pdf.rect(x, y, slipWidth, slipHeight);
+  
+        let cy = y + 8;
+        const lx = x + 6;
+        const rx = x + slipWidth - 6;
+  
+        // Header
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(14);
+        pdf.text("INVOICE", pageWidth / 2, cy, { align: "center" });
+        cy += 8;
+  
+        pdf.setLineWidth(0.4);
+        pdf.line(lx, cy, rx, cy);
+        cy += 6;
+  
+        // Customer Info
+        pdf.setFontSize(10);
+        pdf.text(`Order ID: ${data.orderId}`, lx, cy);
+        cy += 5;
+  
+        pdf.setFont("helvetica", "bold");
+        pdf.text(data.address?.name || "Customer", lx, cy);
+        cy += 5;
+  
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`Phone: ${data.address?.mobile || "-"}`, lx, cy);
+        cy += 4;
+  
+        if (data.user?.email) {
+          pdf.text(`Email: ${data.user.email}`, lx, cy);
+          cy += 4;
+        }
+  
+        const addressText = `${data.address?.address || ""},${data.address?.area || ""}, ${data.address?.city || ""}, ${data.address?.state || ""} - ${data.address?.postal || ""}`;
+        const addrLines = pdf.splitTextToSize(addressText, slipWidth - 12);
+        pdf.text(addrLines, lx, cy);
+        cy += addrLines.length * 4 + 2;
+  
+        // Line
+        pdf.line(lx, cy, rx, cy);
+        cy += 5;
+  
+        // Table Header
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Product", lx, cy);
+        pdf.text("Qty", rx - 35, cy);
+        pdf.text("Price", rx, cy, { align: "right" });
+        cy += 4;
+  
+        pdf.line(lx, cy, rx, cy);
+        cy += 4;
+  
+        // Products
+        pdf.setFont("helvetica", "normal");
+        data.cart.forEach((item) => {
+          const nameLines = pdf.splitTextToSize(item.name, slipWidth - 70);
+          pdf.text(nameLines, lx, cy);
+          pdf.text(String(item.quantity), rx - 35, cy);
+          pdf.text(`₹${item.price}`, rx, cy, { align: "right" });
+          cy += nameLines.length * 4 + 2;
+        });
+  
+        // Bottom line
+        cy = y + slipHeight - 18;
+        pdf.line(lx, cy, rx, cy);
+        cy += 6;
+  
+        // TOTAL (VERY CLEAR)
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.text("TOTAL:", rx - 45, cy);
+        pdf.text(`₹${data.totalAmount}`, rx, cy, { align: "right" });
+      };
+  
+      // Draw top & bottom invoice
+      drawInvoice(margin, margin, order);
+      drawInvoice(margin, margin * 2 + slipHeight, order);
+  
+      pdf.save(`Invoice_${order.orderId}.pdf`);
+      enqueueSnackbar("Invoice PDF downloaded", { variant: "success" });
+    } catch (err) {
+      console.error(err);
+      enqueueSnackbar("Failed to generate invoice", { variant: "error" });
+    }
+  };
+  
 
   return (
     <div className="view-orders-container">
@@ -348,7 +479,7 @@ export default function ViewOrders() {
                 <th>Payment</th>
                 <th>Order Date</th>
                 <th>Status</th>
-                <th>Tracking</th>
+                <th>Actions</th>
 
               </tr>
             </thead>
@@ -423,28 +554,51 @@ export default function ViewOrders() {
                         </span>
                       </td>
                       <td>
-                        {order.status !== "Cancelled" && (
+                        <div className="view-orders-action-buttons-column">
                           <button
-                            className="view-orders-secondary-btn d-flex align-items-center"
-                            onClick={() => openTrackingModal(order)}
+                            className="view-orders-action-btn view-orders-details-btn"
+                            onClick={() => openDetailsModal(order)}
+                            title="View Details"
                           >
-                            {order.tracking?.status || "Add"}
+                            <Eye size={16} />
+                            <span>Details</span>
                           </button>
-                        )}
-
-
-                        {order.paymentMethod === "Razorpay" &&
-                          order.paymentStatus === "Paid" &&
-                          order.status === "Cancelled" &&
-                          order.refundStatus !== "Refunded" && (
+                          
+                          {order.status !== "Cancelled" && (
                             <button
-                              className="view-orders-secondary-btn d-flex align-items-center mt-2"
-                              onClick={() => handleRefund(order)}
-                              disabled={refundingOrderId === order.orderId}
+                              className="view-orders-action-btn view-orders-tracking-btn"
+                              onClick={() => openTrackingModal(order)}
+                              title="Update Tracking"
                             >
-                              {refundingOrderId === order.orderId ? "Refunding..." : "Refund"}
+                              <Truck size={16} />
+                              <span>{order.tracking?.status || "Add Tracking"}</span>
                             </button>
                           )}
+
+                          {order.status !== "Cancelled" && <button
+                            className="view-orders-action-btn view-orders-download-btn"
+                            onClick={() => handleDownloadCourierSlip(order)}
+                            title="Download Shipping Label"
+                          >
+                            <Download size={16} />
+                            <span>Download</span>
+                          </button>}
+
+                          {order.paymentMethod === "Razorpay" &&
+                            order.paymentStatus === "Paid" &&
+                            order.status === "Cancelled" &&
+                            order.refundStatus !== "Refunded" && (
+                              <button
+                                className="view-orders-action-btn view-orders-refund-btn"
+                                onClick={() => handleRefund(order)}
+                                disabled={refundingOrderId === order.orderId}
+                                title="Refund Order"
+                              >
+                                <XCircle size={16} />
+                                <span>{refundingOrderId === order.orderId ? "Refunding..." : "Refund"}</span>
+                              </button>
+                            )}
+                        </div>
                       </td>
                   </tr>
                 );
@@ -465,6 +619,188 @@ export default function ViewOrders() {
         )}
       </div>
 
+      {/* Order Details Modal */}
+      <Modal show={showDetails} onHide={() => setShowDetails(false)} centered size="lg" className="order-details-modal">
+        <Modal.Header closeButton className="order-details-header">
+          <Modal.Title>
+            <div className="d-flex align-items-center gap-2">
+              <Package size={24} />
+              <span>Order Details</span>
+            </div>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="order-details-body">
+          {detailsOrder && (
+            <div className="order-details-content">
+              {/* Order Info Section */}
+              <div className="order-details-section">
+                <h5 className="order-details-section-title">
+                  <ShoppingCart size={18} /> Order Information
+                </h5>
+                <div className="order-details-grid">
+                  <div className="order-details-item">
+                    <span className="order-details-label">Order ID:</span>
+                    <span className="order-details-value">{detailsOrder.orderId}</span>
+                  </div>
+                  <div className="order-details-item">
+                    <span className="order-details-label">Order Date:</span>
+                    <span className="order-details-value">{detailsOrder.date || detailsOrder.createdAt || "N/A"}</span>
+                  </div>
+                  <div className="order-details-item">
+                    <span className="order-details-label">Status:</span>
+                    <span className={`view-orders-status-badge ${getStatusBadge(detailsOrder.status).class}`}>
+                      {getStatusBadge(detailsOrder.status).label}
+                    </span>
+                  </div>
+                  <div className="order-details-item">
+                    <span className="order-details-label">Total Amount:</span>
+                    <span className="order-details-value order-details-price">₹{detailsOrder.totalAmount}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Info Section */}
+              <div className="order-details-section">
+                <h5 className="order-details-section-title">
+                  <User size={18} /> Customer Information
+                </h5>
+                <div className="order-details-grid">
+                  <div className="order-details-item">
+                    <span className="order-details-label">Name:</span>
+                    <span className="order-details-value">{detailsOrder.user?.name || detailsOrder.address?.name || "N/A"}</span>
+                  </div>
+                  {detailsOrder.user?.email && (
+                    <div className="order-details-item">
+                      <span className="order-details-label">
+                        <Mail size={14} /> Email:
+                      </span>
+                      <span className="order-details-value">{detailsOrder.user.email}</span>
+                    </div>
+                  )}
+                  {detailsOrder.address?.mobile && (
+                    <div className="order-details-item">
+                      <span className="order-details-label">
+                        <Phone size={14} /> Phone:
+                      </span>
+                      <span className="order-details-value">{detailsOrder.address.mobile}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Address Section */}
+              {detailsOrder.address && (
+                <div className="order-details-section">
+                  <h5 className="order-details-section-title">
+                    <MapPin size={18} /> Delivery Address
+                  </h5>
+                  <div className="order-details-address">
+                    <p>{detailsOrder.address.address || ""}</p>
+                   <p>{detailsOrder.address.area}</p>
+                    <p>
+                      {detailsOrder.address.city || ""}, {detailsOrder.address.state || ""} - {detailsOrder.address.postal || ""}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Items Section */}
+              {detailsOrder.cart && detailsOrder.cart.length > 0 && (
+                <div className="order-details-section">
+                  <h5 className="order-details-section-title">
+                    <PackagePlus size={18} /> Order Items
+                  </h5>
+                  <div className="order-details-items">
+                    {detailsOrder.cart.map((item, index) => (
+                      <div key={item.id || item._id || index} className="order-details-item-row">
+                        <img src={item.image} alt={item.name} className="order-details-item-image" />
+                        <div className="order-details-item-info">
+                          <div className="order-details-item-name">{item.name}</div>
+                          <div className="order-details-item-meta">
+                            Quantity: {item.quantity} | Price: ₹{item.price || 0}
+                          </div>
+                        </div>
+                        <div className="order-details-item-total">
+                          ₹{(item.price || 0) * (item.quantity || 1)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Section */}
+              <div className="order-details-section">
+                <h5 className="order-details-section-title">
+                  <FileText size={18} /> Payment Information
+                </h5>
+                <div className="order-details-grid">
+                  <div className="order-details-item">
+                    <span className="order-details-label">Payment Method:</span>
+                    <span className="order-details-value">{detailsOrder.paymentMethod || "N/A"}</span>
+                  </div>
+                  <div className="order-details-item">
+                    <span className="order-details-label">Payment Status:</span>
+                    <span className="order-details-value">{detailsOrder.paymentStatus || "Pending"}</span>
+                  </div>
+                  {detailsOrder.refundStatus && (
+                    <div className="order-details-item">
+                      <span className="order-details-label">Refund Status:</span>
+                      <span className="order-details-value">{detailsOrder.refundStatus}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tracking Section */}
+              {detailsOrder.tracking && detailsOrder.tracking.referenceNumber && (
+                <div className="order-details-section">
+                  <h5 className="order-details-section-title">
+                    <Truck size={18} /> Tracking Information
+                  </h5>
+                  <div className="order-details-grid">
+                    <div className="order-details-item">
+                      <span className="order-details-label">Reference Number:</span>
+                      <span className="order-details-value">{detailsOrder.tracking.referenceNumber}</span>
+                    </div>
+                    <div className="order-details-item">
+                      <span className="order-details-label">Courier Partner:</span>
+                      <span className="order-details-value">{detailsOrder.tracking.courierPartner}</span>
+                    </div>
+                    {detailsOrder.tracking.estimateDate && (
+                      <div className="order-details-item">
+                        <span className="order-details-label">Estimated Delivery:</span>
+                        <span className="order-details-value">
+                          {new Date(detailsOrder.tracking.estimateDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="order-details-item">
+                      <span className="order-details-label">Status:</span>
+                      <span className="order-details-value">{detailsOrder.tracking.status}</span>
+                    </div>
+                    {detailsOrder.tracking.trackingLink && (
+                      <div className="order-details-item full-width">
+                        <span className="order-details-label">Tracking Link:</span>
+                        <a href={detailsOrder.tracking.trackingLink} target="_blank" rel="noopener noreferrer" className="order-details-link">
+                          {detailsOrder.tracking.trackingLink}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="order-details-footer">
+          <Button variant="secondary" onClick={() => setShowDetails(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Tracking Modal */}
       <Modal show={showTracking} onHide={() => setShowTracking(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Update Tracking</Modal.Title>
