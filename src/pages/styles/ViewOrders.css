@@ -148,6 +148,10 @@
     cursor: pointer;
     transition: all 0.3s ease;
   }
+
+  .view-orders-search{
+    max-width: 140px !important;
+  }
   
   .view-orders-secondary-btn:hover {
     background: #5a6268;

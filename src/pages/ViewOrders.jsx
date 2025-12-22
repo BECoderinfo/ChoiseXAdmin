@@ -34,6 +34,7 @@ export default function ViewOrders() {
   const [refundingOrderId, setRefundingOrderId] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [detailsOrder, setDetailsOrder] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [trackingForm, setTrackingForm] = useState({
     referenceNumber: "",
     estimateDate: "",
@@ -263,107 +264,267 @@ export default function ViewOrders() {
     newWindow.print();
   };
 
-  const handleDownloadCourierSlip = (order) => {
+
+
+
+  const formatCurrency = (amount) => {
+    return Number(amount).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+  const formatOrderDateTime = (dateString) => {
+    if (!dateString) return "N/A";
+
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12; // 12-hour format
+
+    return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+  };
+
+  const handleExportInvoices = () => {
     try {
+      // Parse selected date
+      const selectedDateObj = new Date(selectedDate);
+      selectedDateObj.setHours(0, 0, 0, 0);
+
+      // Filter orders: selected date only, exclude cancelled
+      const eligibleOrders = orders.filter(order => {
+        if (order.status === "Cancelled" || order.status === "Canceled") return false;
+
+        const orderDate = new Date(order.createdAt || order.date);
+        orderDate.setHours(0, 0, 0, 0);
+
+        return orderDate.getTime() === selectedDateObj.getTime();
+      });
+
+      // Sort by creation time (ascending)
+      eligibleOrders.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date);
+        const dateB = new Date(b.createdAt || b.date);
+        return dateA - dateB;
+      });
+
+      if (eligibleOrders.length === 0) {
+        enqueueSnackbar(`No eligible orders found for ${selectedDate}`, { variant: "warning" });
+        return;
+      }
+
       const pdf = new jsPDF("p", "mm", "a4");
-  
-      const pageWidth = 210;
-      const pageHeight = 297;
-  
-      const margin = 10;
-      const slipWidth = pageWidth - margin * 2;
-      const slipHeight = (pageHeight - margin * 3) / 2;
-  
-      const drawInvoice = (x, y, data) => {
+
+      // Invoice layout
+      const invoiceWidth = 95;
+      const invoiceHeight = 135;
+      const marginX = 7.5;
+      const marginY = 10;
+      const gapX = 5;
+      const gapY = 7;
+
+      const positions = [
+        { x: marginX, y: marginY },
+        { x: marginX + invoiceWidth + gapX, y: marginY },
+        { x: marginX, y: marginY + invoiceHeight + gapY },
+        { x: marginX + invoiceWidth + gapX, y: marginY + invoiceHeight + gapY }
+      ];
+
+      // ================= DRAW INVOICE =================
+      const drawInvoice = (x, y, order) => {
+        const lx = x + 3;
+        const rx = x + invoiceWidth - 3;
+        let cy = y + 5;
+
+        // Column alignment (FIXED)
+        const colProductX = lx;
+        const colQtyX = x + invoiceWidth - 42;
+        const colPriceX = x + invoiceWidth - 20;
+        const colSubtotalX = x + invoiceWidth - 5;
+
         // Border
-        pdf.setLineWidth(0.6);
-        pdf.rect(x, y, slipWidth, slipHeight);
-  
-        let cy = y + 8;
-        const lx = x + 6;
-        const rx = x + slipWidth - 6;
-  
-        // Header
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(14);
-        pdf.text("INVOICE", pageWidth / 2, cy, { align: "center" });
-        cy += 8;
-  
-        pdf.setLineWidth(0.4);
-        pdf.line(lx, cy, rx, cy);
-        cy += 6;
-  
-        // Customer Info
-        pdf.setFontSize(10);
-        pdf.text(`Order ID: ${data.orderId}`, lx, cy);
-        cy += 5;
-  
-        pdf.setFont("helvetica", "bold");
-        pdf.text(data.address?.name || "Customer", lx, cy);
-        cy += 5;
-  
-        pdf.setFont("helvetica", "normal");
-        pdf.text(`Phone: ${data.address?.mobile || "-"}`, lx, cy);
-        cy += 4;
-  
-        if (data.user?.email) {
-          pdf.text(`Email: ${data.user.email}`, lx, cy);
-          cy += 4;
-        }
-  
-        const addressText = `${data.address?.address || ""},${data.address?.area || ""}, ${data.address?.city || ""}, ${data.address?.state || ""} - ${data.address?.postal || ""}`;
-        const addrLines = pdf.splitTextToSize(addressText, slipWidth - 12);
-        pdf.text(addrLines, lx, cy);
-        cy += addrLines.length * 4 + 2;
-  
-        // Line
-        pdf.line(lx, cy, rx, cy);
-        cy += 5;
-  
-        // Table Header
-        pdf.setFont("helvetica", "bold");
-        pdf.text("Product", lx, cy);
-        pdf.text("Qty", rx - 35, cy);
-        pdf.text("Price", rx, cy, { align: "right" });
-        cy += 4;
-  
-        pdf.line(lx, cy, rx, cy);
-        cy += 4;
-  
-        // Products
-        pdf.setFont("helvetica", "normal");
-        data.cart.forEach((item) => {
-          const nameLines = pdf.splitTextToSize(item.name, slipWidth - 70);
-          pdf.text(nameLines, lx, cy);
-          pdf.text(String(item.quantity), rx - 35, cy);
-          pdf.text(`₹${item.price}`, rx, cy, { align: "right" });
-          cy += nameLines.length * 4 + 2;
-        });
-  
-        // Bottom line
-        cy = y + slipHeight - 18;
-        pdf.line(lx, cy, rx, cy);
-        cy += 6;
-  
-        // TOTAL (VERY CLEAR)
+        pdf.setLineWidth(0.5);
+        pdf.rect(x, y, invoiceWidth, invoiceHeight);
+
+        // ===== HEADER =====
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(12);
-        pdf.text("TOTAL:", rx - 45, cy);
-        pdf.text(`₹${data.totalAmount}`, rx, cy, { align: "right" });
+        pdf.text("TAX INVOICE", x + invoiceWidth / 2, cy, { align: "center" });
+        cy += 6;
+
+        pdf.setLineWidth(0.3);
+        pdf.line(lx, cy, rx, cy);
+        cy += 5;
+
+        // ===== CUSTOMER DETAILS =====
+        pdf.setFontSize(8);
+        pdf.text("Customer Details", lx, cy);
+        cy += 4;
+
+        pdf.setFontSize(9);
+        pdf.text(order.address?.name || order.user?.name || "Customer", lx, cy);
+        cy += 4;
+
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`Mobile: ${order.address?.mobile || "N/A"}`, lx, cy);
+        cy += 4;
+
+        pdf.text(`Email : ${order.address?.email || "N/A"}`, lx, cy);
+        cy += 4;
+
+        const fullAddress = `${order.address?.address || ""}, ${order.address?.area || ""}, ${order.address?.city || ""}, ${order.address?.state || ""} - ${order.address?.postal || ""}`;
+        const addressLines = pdf.splitTextToSize(fullAddress, invoiceWidth - 6);
+        pdf.text(addressLines, lx, cy);
+        cy += addressLines.length * 3.5 + 3;
+
+        pdf.line(lx, cy, rx, cy);
+        cy += 4;
+
+        // ===== ORDER DETAILS =====
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.text("Order Details", lx, cy);
+        cy += 4;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text(`Order ID: ${order.orderId || "N/A"}`, lx, cy);
+        cy += 3.5;
+
+        pdf.text(
+          `Order Date: ${formatOrderDateTime(order.createdAt || order.date)}`,
+          lx,
+          cy
+        );
+
+        cy += 3.5;
+
+        pdf.text(`Payment: ${order.paymentMethod || "N/A"}`, lx, cy);
+        cy += 3.5;
+
+        
+
+
+
+        pdf.line(lx, cy, rx, cy);
+        cy += 4;
+
+        // ===== PRODUCT TABLE HEADER =====
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.text("Product", colProductX, cy);
+        pdf.text("Qty", colQtyX, cy, { align: "right" });
+        pdf.text("Price", colPriceX, cy, { align: "right" });
+        pdf.text("Subtotal", colSubtotalX, cy, { align: "right" });
+
+        cy += 3;
+        pdf.setLineWidth(0.2);
+        pdf.line(lx, cy, rx, cy);
+        cy += 3;
+
+        // ===== PRODUCT ROWS =====
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(6.5);
+
+        if (order.cart && order.cart.length > 0) {
+          order.cart.forEach(item => {
+            const qty = item.quantity || 1;
+            const priceNum = Number(item.price) || 0;
+            const subtotalNum = qty * priceNum;
+
+            const nameLines = pdf.splitTextToSize(
+              item.name || "Product",
+              colQtyX - colProductX - 2
+            );
+
+            pdf.text(nameLines, colProductX, cy);
+            pdf.text(String(qty), colQtyX, cy, { align: "right" });
+            pdf.text(`Rs. ${formatCurrency(priceNum)}`, colPriceX, cy, { align: "right" });
+            pdf.text(`Rs. ${formatCurrency(subtotalNum)}`, colSubtotalX, cy, { align: "right" });
+
+            cy += nameLines.length * 3.2 + 1;
+          });
+        }
+
+        cy += 2;
+        pdf.line(lx, cy, rx, cy);
+        cy += 4;
+
+        // ===== PRICE SUMMARY =====
+        const itemTotal = order.totalAmount || 0;
+
+        pdf.setFontSize(7);
+        pdf.text("Item Total:", colPriceX, cy, { align: "right" });
+        pdf.text(`Rs. ${itemTotal}`, colSubtotalX, cy, { align: "right" });
+        cy += 3.5;
+
+        pdf.text("GST (included):", colPriceX, cy, { align: "right" });
+        pdf.text("Included", colSubtotalX, cy, { align: "right" });
+        cy += 4;
+
+        pdf.setLineWidth(0.3);
+        pdf.line(lx, cy, rx, cy);
+        cy += 4;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.text("Grand Total:", colPriceX, cy, { align: "right" });
+        pdf.text(`Rs. ${itemTotal}`, colSubtotalX, cy, { align: "right" });
+        cy += 5;
+
+        // ===== COD NOTE =====
+        if (order.paymentMethod === "COD" || order.paymentMethod === "Cash on Delivery") {
+          pdf.setFillColor(255, 255, 200);
+          pdf.rect(lx, cy - 2, invoiceWidth - 6, 7, "F");
+
+          pdf.setFontSize(8);
+          pdf.text(
+            `Cash on Delivery – Collect Rs. ${itemTotal}`,
+            x + invoiceWidth / 2,
+            cy + 3,
+            { align: "center" }
+          );
+        }
+
+        // ===== FOOTER =====
+        pdf.setFont("helvetica", "italic");
+        pdf.setFontSize(6);
+        pdf.text(
+          "Thank you for your order!",
+          x + invoiceWidth / 2,
+          y + invoiceHeight - 6,
+          { align: "center" }
+        );
       };
-  
-      // Draw top & bottom invoice
-      drawInvoice(margin, margin, order);
-      drawInvoice(margin, margin * 2 + slipHeight, order);
-  
-      pdf.save(`Invoice_${order.orderId}.pdf`);
-      enqueueSnackbar("Invoice PDF downloaded", { variant: "success" });
+
+      // ===== GENERATE PDF =====
+      let invoiceCount = 0;
+
+      for (const order of eligibleOrders) {
+        const pos = positions[invoiceCount % 4];
+        drawInvoice(pos.x, pos.y, order);
+
+        invoiceCount++;
+
+        if (invoiceCount % 4 === 0 && invoiceCount < eligibleOrders.length) {
+          pdf.addPage();
+        }
+      }
+
+      pdf.save(`Invoices_${selectedDate}.pdf`);
+      enqueueSnackbar(`Exported ${eligibleOrders.length} invoices`, { variant: "success" });
+
     } catch (err) {
       console.error(err);
-      enqueueSnackbar("Failed to generate invoice", { variant: "error" });
+      enqueueSnackbar("Failed to generate invoices", { variant: "error" });
     }
   };
-  
+
+
 
   return (
     <div className="view-orders-container">
@@ -462,8 +623,18 @@ export default function ViewOrders() {
               <option value="Delivered">Delivered</option>
               <option value="Cancelled">Cancelled</option>
             </select>
+            <input
+              type="date"
+              className="view-orders-search"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{ width: "auto" }}
+            />
             <button className="view-orders-secondary-btn d-flex align-items-center justify-content-center" onClick={handleExportPDF}>
               <Download size={14} style={{ marginRight: "6px" }} /> Export PDF
+            </button>
+            <button className="view-orders-secondary-btn d-flex align-items-center justify-content-center" onClick={handleExportInvoices}>
+              <FileText size={14} style={{ marginRight: "6px" }} /> Export Invoices (PDF)
             </button>
           </div>
         </div>
@@ -487,14 +658,14 @@ export default function ViewOrders() {
               {filteredOrders.map((order) => {
                 // Map tracking status to order status for display
                 let displayStatus = order.status;
-                
+
                 if (order.paymentStatus === "Failed") {
                   displayStatus = "Payment Failed";
                 }
                 // If order is Cancelled, always show Cancelled (don't override)
                 if (order.status === "Cancelled") {
                   displayStatus = "Cancelled";
-                } 
+                }
                 // If order has tracking, map tracking status to order status
                 else if (order.tracking?.status) {
                   if (order.tracking.status === "Order Confirmed") {
@@ -516,7 +687,7 @@ export default function ViewOrders() {
                     <td>
                       <div className="view-orders-user-info">
                         <div>
-                          <div className="view-orders-user-name">
+                          <div className="view-orders-user-name " style={{ fontSize: "0.8em" }}>
                             {order.user?.name || order.address?.name || "Customer"}
                           </div>
                           <div className="view-orders-user-address">
@@ -525,81 +696,74 @@ export default function ViewOrders() {
                         </div>
                       </div>
                     </td>
-                    
-                      <td>
-                        <div className="view-orders-product-list">
-                          {order.cart?.map((item) => (
-                            <div key={item.id || item._id} className="view-orders-item-line d-flex align-items-center gap-2">
-                              <img src={item.image} alt={item.name} className="view-orders-product-image" />
-                              <span className="view-orders-product-nameSpan">{item.name} x {item.quantity}</span> 
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td>
-                        <strong className="view-orders-price">₹{order.totalAmount}</strong>
-                      </td>
-                      <td>
-                        <div className="payment-pill" style={{ fontSize: "0.9rem" }}>
-                          {order.paymentMethod || "N/A"} / {order.paymentStatus || "Pending"}
-                        </div>
-                        {order.refundStatus && (
-                          <div className="small text-muted">Refund: {order.refundStatus}</div>
-                        )}
-                      </td>
-                      <td style={{ fontSize: "0.9rem" }}>{order.date || order.createdAt}</td>
-                      <td>
-                        <span className={`view-orders-status-badge ${statusInfo.class}`}>
-                          {statusInfo.label}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="view-orders-action-buttons-column">
+
+                    <td>
+                      <div className="view-orders-product-list">
+                        {order.cart?.map((item) => (
+                          <div key={item.id || item._id} className="view-orders-item-line d-flex align-items-center gap-2">
+                            <img src={item.image} alt={item.name} className="view-orders-product-image" />
+                            <span className="view-orders-product-nameSpan" style={{ fontSize: "0.7rem" }}>{item.name} x {item.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <strong className="view-orders-price" style={{ fontSize: "0.8em" }}>₹{order.totalAmount}</strong>
+                    </td>
+                    <td>
+                      <div className="payment-pill" style={{ fontSize: "0.7rem" }}>
+                        {order.paymentMethod || "N/A"} / {order.paymentStatus || "Pending"}
+                      </div>
+                      {order.refundStatus && (
+                        <div className="small text-muted" style={{ fontSize: "0.7rem" }}>Refund: {order.refundStatus}</div>
+                      )}
+                    </td>
+                    <td style={{ fontSize: "0.8rem" }}>{formatOrderDateTime(order.createdAt || order.date)}</td>
+                    <td>
+                      <span className={`view-orders-status-badge ${statusInfo.class}`}>
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="view-orders-action-buttons-column">
+                        <button
+                          className="view-orders-action-btn view-orders-details-btn"
+                          onClick={() => openDetailsModal(order)}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                          <span>Details</span>
+                        </button>
+
+                        {order.status !== "Cancelled" && (
                           <button
-                            className="view-orders-action-btn view-orders-details-btn"
-                            onClick={() => openDetailsModal(order)}
-                            title="View Details"
+                            className="view-orders-action-btn view-orders-tracking-btn"
+                            onClick={() => openTrackingModal(order)}
+                            title="Update Tracking"
                           >
-                            <Eye size={16} />
-                            <span>Details</span>
+                            <Truck size={16} />
+                            <span>{order.tracking?.status || "Add Tracking"}</span>
                           </button>
-                          
-                          {order.status !== "Cancelled" && (
+                        )}
+
+                    
+
+                        {order.paymentMethod === "Razorpay" &&
+                          order.paymentStatus === "Paid" &&
+                          order.status === "Cancelled" &&
+                          order.refundStatus !== "Refunded" && (
                             <button
-                              className="view-orders-action-btn view-orders-tracking-btn"
-                              onClick={() => openTrackingModal(order)}
-                              title="Update Tracking"
+                              className="view-orders-action-btn view-orders-refund-btn"
+                              onClick={() => handleRefund(order)}
+                              disabled={refundingOrderId === order.orderId}
+                              title="Refund Order"
                             >
-                              <Truck size={16} />
-                              <span>{order.tracking?.status || "Add Tracking"}</span>
+                              <XCircle size={16} />
+                              <span>{refundingOrderId === order.orderId ? "Refunding..." : "Refund"}</span>
                             </button>
                           )}
-
-                          {order.status !== "Cancelled" && <button
-                            className="view-orders-action-btn view-orders-download-btn"
-                            onClick={() => handleDownloadCourierSlip(order)}
-                            title="Download Shipping Label"
-                          >
-                            <Download size={16} />
-                            <span>Download</span>
-                          </button>}
-
-                          {order.paymentMethod === "Razorpay" &&
-                            order.paymentStatus === "Paid" &&
-                            order.status === "Cancelled" &&
-                            order.refundStatus !== "Refunded" && (
-                              <button
-                                className="view-orders-action-btn view-orders-refund-btn"
-                                onClick={() => handleRefund(order)}
-                                disabled={refundingOrderId === order.orderId}
-                                title="Refund Order"
-                              >
-                                <XCircle size={16} />
-                                <span>{refundingOrderId === order.orderId ? "Refunding..." : "Refund"}</span>
-                              </button>
-                            )}
-                        </div>
-                      </td>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -644,7 +808,7 @@ export default function ViewOrders() {
                   </div>
                   <div className="order-details-item">
                     <span className="order-details-label">Order Date:</span>
-                    <span className="order-details-value">{detailsOrder.date || detailsOrder.createdAt || "N/A"}</span>
+                    <span className="order-details-value">{formatOrderDateTime(detailsOrder.createdAt || detailsOrder.date)}</span>
                   </div>
                   <div className="order-details-item">
                     <span className="order-details-label">Status:</span>
@@ -696,7 +860,7 @@ export default function ViewOrders() {
                   </h5>
                   <div className="order-details-address">
                     <p>{detailsOrder.address.address || ""}</p>
-                   <p>{detailsOrder.address.area}</p>
+                    <p>{detailsOrder.address.area}</p>
                     <p>
                       {detailsOrder.address.city || ""}, {detailsOrder.address.state || ""} - {detailsOrder.address.postal || ""}
                     </p>
